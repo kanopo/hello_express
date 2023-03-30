@@ -5,7 +5,7 @@ import crypto from "crypto";
 import multer from "multer";
 import cors from "cors"
 
-import { fileRecord, insertRecord } from "./sqlQuery.js"
+import { fileRecord, insertRecord, getIDs, getS3NameFromID } from "./sqlQuery.js"
 
 
 // this keep file to upload in memory and then send it in post req to s3
@@ -34,18 +34,23 @@ app.get('/', (req: Request, res: Response) => {
 })
 
 app.get('/listItems', async (req: Request, res: Response) => {
-  const listParams = {
-    Bucket: "dmitri-bucket",
-  }
-  let command = new ListObjectsCommand(listParams)
-  try {
-    const data = await client.send(command)
-    console.log(data)
-    res.send(data.Contents)
-  } catch (error) {
-    // TODO: error handling :/
-  }
+
+
+  let ids = await getIDs()
+  res.send(ids)
+
+
 })
+
+app.get('/getS3NameFromID/:id', async (req: Request, res: Response) => {
+  let id = req.params.id;
+  let rows = await getS3NameFromID(id)
+
+  res.send(rows)
+
+
+})
+
 
 app.post('/item', upload.single("file"), async (req: Request, res: Response) => {
 
@@ -68,23 +73,14 @@ app.post('/item', upload.single("file"), async (req: Request, res: Response) => 
     s3Name: objectName
   }
 
-  insertRecord(fileRecord)
+  let results = await insertRecord(fileRecord)
 
   // TODO:
   // - ( ) connect to rds
   // - (x) create new user
   // - (x) create new table with main index Index and s3Name columns
 
-
-  // console.log(uploadParams)
-  // console.log("index", dbIndex)
-
-  // const response = await client.send(new PutObjectCommand(uploadParams))
-  //
-  // console.log(response)
-  //
-  // res.sendStatus(response.$metadata.httpStatusCode)
-  res.sendStatus(200)
+  res.send(results)
 })
 
 app.listen(PORT, () => {

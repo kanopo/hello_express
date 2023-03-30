@@ -1,41 +1,38 @@
-import mysql from "mysql";
+import mysql from "mysql2";
 
 export interface fileRecord {
   ID: string,
   s3Name: string
 }
 
-export const insertRecord = (fileRecord: fileRecord) => {
-  // INSERT INTO node_app.files (ID, s3Name) VALUES ("ciao", "asdasd");
-  let query = `INSERT INTO node_app.files (ID, s3Name) VALUES ("${fileRecord.ID}", "${fileRecord.s3Name}");`
+const pool = mysql.createPool({
+  host: "127.0.0.1",
+  user: "node",
+  password: "password"
+}).promise()
 
-  let connection = mysql.createConnection({
-    host: "127.0.0.1",
-    user: "node",
-    password: "password"
-  });
+export const insertRecord = async (fileRecord: fileRecord) => {
 
-  connection.connect((error) => {
-    if (error) throw error;
-    console.log("connected")
+  const [results] = await pool.query(`INSERT INTO node_app.files (ID, s3Name) VALUES (?, ?)`, [fileRecord.ID, fileRecord.s3Name])
 
-    connection.query(query, (error, result) => {
-      if (error) throw error;
-
-      console.log("Result: ", result);
-    })
-
-  })
+  return results;
 
 
 }
 
-export const getIDs = () => {
-// SELECT ID FROM files;
+export const getIDs = async () => {
+
+  const [rows] = await pool.query("SELECT ID FROM node_app.files;")
+  return rows;
+
+
 
 }
 
-export const getS3NameFromID = () => {
-// SELECT ID FROM files WHERE ID = "6cd10cb6-68a7-4a9b-bbef-dca7a98b52e4";
+export const getS3NameFromID = async (id: string) => {
+
+  const [rows] = await pool.query(`SELECT s3Name FROM node_app.files WHERE ID = ?`, [id])
+  return rows
+
 
 }
