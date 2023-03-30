@@ -1,6 +1,6 @@
 
 import express, { Response, Request } from "express";
-import { S3Client, ListObjectsCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, ListObjectsCommand, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import crypto from "crypto";
 import multer from "multer";
 import cors from "cors"
@@ -27,29 +27,30 @@ const generateAB = () => {
   return [dbIndex, objectName]
 }
 
-
-
-app.get('/', (req: Request, res: Response) => {
-  res.send("hello")
-})
-
 app.get('/listItems', async (req: Request, res: Response) => {
-
-
   let ids = await getIDs()
   res.send(ids)
-
-
 })
 
 app.get('/getS3NameFromID/:id', async (req: Request, res: Response) => {
   let id = req.params.id;
   let rows = await getS3NameFromID(id)
-
   res.send(rows)
+})
 
+app.get('/getS3Item/:objectName', async (req: Request, res: Response) => {
+  const getParams = {
+    Bucket: "dmitri-bucket",
+    Key: req.params.objectName,
+  }
+
+  const response = await client.send(new GetObjectCommand(getParams))
+
+  console.log(response)
+  res.sendStatus(response.$metadata.httpStatusCode)
 
 })
+
 
 
 app.post('/item', upload.single("file"), async (req: Request, res: Response) => {
@@ -75,12 +76,9 @@ app.post('/item', upload.single("file"), async (req: Request, res: Response) => 
 
   let results = await insertRecord(fileRecord)
 
-  // TODO:
-  // - ( ) connect to rds
-  // - (x) create new user
-  // - (x) create new table with main index Index and s3Name columns
+  const response = await client.send(new PutObjectCommand(uploadParams))
 
-  res.send(results)
+  res.sendStatus(response.$metadata.httpStatusCode)
 })
 
 app.listen(PORT, () => {
