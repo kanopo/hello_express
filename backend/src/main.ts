@@ -5,9 +5,11 @@ import crypto from "crypto";
 import multer from "multer";
 import cors from "cors"
 
+import { fileRecord, insertRecord } from "./sqlQuery.js"
+
 
 // this keep file to upload in memory and then send it in post req to s3
-const upload = multer({ storage: multer.memoryStorage()})
+const upload = multer({ storage: multer.memoryStorage() })
 
 upload.single("file")
 
@@ -24,6 +26,7 @@ const generateAB = () => {
 
   return [dbIndex, objectName]
 }
+
 
 
 app.get('/', (req: Request, res: Response) => {
@@ -50,7 +53,7 @@ app.post('/item', upload.single("file"), async (req: Request, res: Response) => 
   let buffer = req.file.buffer;
   // let originalName = req.file.originalname;
 
-  let [ dbIndex, objectName ] = generateAB();
+  let [dbIndex, objectName] = generateAB();
   const uploadParams = {
     Bucket: "dmitri-bucket",
     Body: buffer,
@@ -60,19 +63,28 @@ app.post('/item', upload.single("file"), async (req: Request, res: Response) => 
   }
 
 
+  let fileRecord: fileRecord = {
+    ID: dbIndex,
+    s3Name: objectName
+  }
+
+  insertRecord(fileRecord)
+
   // TODO:
   // - ( ) connect to rds
-  // - ( ) create new user
-  // - ( ) create new table with main index Index and s3Name columns
+  // - (x) create new user
+  // - (x) create new table with main index Index and s3Name columns
 
-  console.log(uploadParams)
-  console.log("index", dbIndex)
 
-  const response = await client.send(new PutObjectCommand(uploadParams))
+  // console.log(uploadParams)
+  // console.log("index", dbIndex)
 
-  console.log(response)
-
-  res.sendStatus(response.$metadata.httpStatusCode)
+  // const response = await client.send(new PutObjectCommand(uploadParams))
+  //
+  // console.log(response)
+  //
+  // res.sendStatus(response.$metadata.httpStatusCode)
+  res.sendStatus(200)
 })
 
 app.listen(PORT, () => {
