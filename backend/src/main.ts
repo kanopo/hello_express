@@ -1,6 +1,6 @@
 
 import express, { Response, Request } from "express";
-import { S3Client, ListObjectsCommand, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import crypto from "crypto";
 import multer from "multer";
 import cors from "cors"
@@ -35,7 +35,26 @@ app.get('/listItems', async (req: Request, res: Response) => {
 app.get('/getS3NameFromID/:id', async (req: Request, res: Response) => {
   let id = req.params.id;
   let rows = await getS3NameFromID(id)
-  res.send(rows)
+
+  const getParams = {
+    Bucket: "dmitri-bucket",
+    Key: rows[0].s3Name,
+  }
+
+  try {
+    const response = await client.send(new GetObjectCommand(getParams))
+
+    let buffer = Buffer.concat(await (response).Body.toArray())
+
+
+    res.send(buffer)
+
+    // res.sendStatus(response.$metadata.httpStatusCode)
+
+  }
+  catch (err) {
+    console.log(err)
+  }
 })
 
 app.get('/getS3Item/:objectName', async (req: Request, res: Response) => {
@@ -44,11 +63,20 @@ app.get('/getS3Item/:objectName', async (req: Request, res: Response) => {
     Key: req.params.objectName,
   }
 
-  const response = await client.send(new GetObjectCommand(getParams))
+  try {
+    const response = await client.send(new GetObjectCommand(getParams))
 
-  console.log(response)
-  res.sendStatus(response.$metadata.httpStatusCode)
+    let buffer = Buffer.concat(await (response).Body.toArray())
 
+
+    res.send(buffer)
+
+    // res.sendStatus(response.$metadata.httpStatusCode)
+
+  }
+  catch (err) {
+    console.log(err)
+  }
 })
 
 
