@@ -48,7 +48,7 @@ app.post('/item', upload.single("file"), async (req: Request, res: Response) => 
 
   let mimeType = req.file.mimetype;
   let buffer = req.file.buffer;
-  let originalName = req.file.originalname;
+  // let originalName = req.file.originalname;
 
   let [ dbIndex, objectName ] = generateAB();
   const uploadParams = {
@@ -58,6 +58,12 @@ app.post('/item', upload.single("file"), async (req: Request, res: Response) => 
     ContentType: mimeType
 
   }
+
+
+  // TODO:
+  // - ( ) connect to rds
+  // - ( ) create new user
+  // - ( ) create new table with main index Index and s3Name columns
 
   console.log(uploadParams)
   console.log("index", dbIndex)
