@@ -106,13 +106,13 @@ app.get("/getS3Item/:objectName", async (req: Request, res: Response) => {
   };
 
   try {
-    const response: any = await client.send(new GetObjectCommand(getParams));
+    const response = await client.send(new GetObjectCommand(getParams));
 
-    let buffer = Buffer.concat(await response.Body.toArray());
+    // let buffer = Buffer.concat(response.Body);
+    //
+    // res.send(buffer);
 
-    res.send(buffer);
-
-    // res.sendStatus(response.$metadata.httpStatusCode)
+    res.sendStatus(response.$metadata.httpStatusCode)
   } catch (err) {
     console.log(err);
   }

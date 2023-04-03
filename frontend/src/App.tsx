@@ -1,7 +1,8 @@
 import { ChangeEvent, useEffect, useState } from 'react'
 
 function App() {
-  const API_URL = "https://nodebackend.dmitri.sandbox.soluzionifutura.it";
+  // const API_URL = "https://nodebackend.dmitri.sandbox.soluzionifutura.it";
+  const API_URL = "http://localhost:3000";
   const [file, setFile] = useState<File>();
   const [fileName, setFileName] = useState<File>();
   const [s3File, setS3File] = useState(String);
