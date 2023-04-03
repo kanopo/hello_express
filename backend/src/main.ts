@@ -49,7 +49,7 @@ app.get("/getS3NameFromID/:id", async (req: Request, res: Response) => {
   };
 
   try {
-    const response = await client.send(new GetObjectCommand(getParams));
+    const response:any = await client.send(new GetObjectCommand(getParams));
 
     let buffer = Buffer.concat(await response.Body.toArray());
 
@@ -68,7 +68,7 @@ app.get("/getS3Item/:objectName", async (req: Request, res: Response) => {
   };
 
   try {
-    const response = await client.send(new GetObjectCommand(getParams));
+    const response:any  = await client.send(new GetObjectCommand(getParams));
 
     let buffer = Buffer.concat(await response.Body.toArray());
 
