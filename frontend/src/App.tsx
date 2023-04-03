@@ -3,7 +3,7 @@ import { ChangeEvent, useEffect, useState } from 'react'
 function App() {
   const [file, setFile] = useState<File>();
   const [fileName, setFileName] = useState<File>();
-  const [s3File, setS3File] = useState();
+  const [s3File, setS3File] = useState(String);
   const [listFiles, setListFiles] = useState([]);
 
   useEffect(() => {
@@ -14,13 +14,13 @@ function App() {
       .then((data) => {
         setListFiles(data)
       })
-      .then(() => updateIdList())
+      // .then(() => updateIdList())
       .catch((err) => console.error(err));
 
 
   }, [])
 
-  const sendFile = (event) => {
+  const sendFile = (event:any) => {
     event.preventDefault();
 
     if (!file) {
@@ -46,7 +46,7 @@ function App() {
     }
   }
 
-  const changeFile = (event) => {
+  const changeFile = (event:any) => {
     if (event.target.files) {
       setFile(event.target.files[0])
     }
@@ -54,7 +54,7 @@ function App() {
 
 
 
-  const getImage = (event) => {
+  const getImage = (event:any) => {
 
     event.preventDefault();
     let buffer = fetch(`http://localhost:3000/getS3NameFromID/${fileName}`, {
@@ -82,13 +82,13 @@ function App() {
 
 
       <ul>
-        {listFiles.map((item) => (
+        {listFiles.map((item:any) => (
           <li>{item.ID}</li>
         ))}
       </ul>
 
       <form>
-        <input type="text" name="fileName" onChange={(event) => setFileName(event.target.value)} />
+        <input type="text" name="fileName" onChange={(event:any) => setFileName(event.target.value)} />
         <button onClick={getImage}>Get image</button>
       </form>
 
