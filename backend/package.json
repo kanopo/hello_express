@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "tsc -w & nodemon -q -w dist dist/main.js",
     "build": "tsc",
-    "run": "node dist/index.js"
+    "start": "node dist/main.js"
   },
   "keywords": [],
   "author": "",
