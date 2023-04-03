@@ -77,7 +77,7 @@ app.get("/", async (req: Request, res: Response) => {
   res.sendStatus(200);
 });
 app.get("/listItems", async (req: Request, res: Response) => {
-  let ids = await getIDs();
+  let ids = (await getIDs()).map(item => item.ID)
   res.send(ids);
 });
 
