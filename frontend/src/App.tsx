@@ -1,4 +1,7 @@
 import { ChangeEvent, useEffect, useState } from 'react'
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 function App() {
   const [file, setFile] = useState<File>();
@@ -7,7 +10,7 @@ function App() {
   const [listFiles, setListFiles] = useState([]);
 
   useEffect(() => {
-    fetch("http://localhost:3000/listItems", {
+    fetch(`${process.env.API_URL}/listItems`, {
       method: "GET"
     })
       .then((res) => res.json())
@@ -36,7 +39,7 @@ function App() {
       );
 
 
-      fetch("http://localhost:3000/item", {
+      fetch(`${process.env.API_URL}/item`, {
         method: "POST",
         body: data,
       })
@@ -57,7 +60,7 @@ function App() {
   const getImage = (event:any) => {
 
     event.preventDefault();
-    let buffer = fetch(`http://localhost:3000/getS3NameFromID/${fileName}`, {
+    let buffer = fetch(`${process.env.API_URL}/getS3NameFromID/${fileName}`, {
       method: "GET",
     }).then((responce) => {
       if (!responce.ok) {
