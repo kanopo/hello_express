@@ -26,8 +26,11 @@ upload.single("file");
 
 const app = express();
 
-app.use(cors());
-const PORT = process.env.PORT || 3000;
+const corsOptions = {
+  origin: `${process.env.WEBSITE_URL}`
+}
+app.use(cors(corsOptions));
+const PORT = process.env.PORT;
 const client = new S3Client({ region: "eu-north-1" });
 
 const generateAB = () => {
