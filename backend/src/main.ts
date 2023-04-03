@@ -9,15 +9,47 @@ import crypto from "crypto";
 import multer from "multer";
 import cors from "cors";
 import dotenv from "dotenv";
-
-import {
-  fileRecord,
-  insertRecord,
-  getIDs,
-  getS3NameFromID,
-} from "./sqlQuery.js";
+import { createPool } from "mysql2/promise";
 
 dotenv.config();
+
+interface fileRecord {
+  ID: string,
+  s3Name: string
+}
+
+const pool = createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_USER
+})
+
+const insertRecord = async (fileRecord: fileRecord) => {
+
+  const [results] = await pool.query(`INSERT INTO node_app.files (ID, s3Name) VALUES (?, ?)`, [fileRecord.ID, fileRecord.s3Name])
+
+  return results;
+
+
+}
+
+const getIDs = async () => {
+
+  const [rows] = await pool.query("SELECT ID FROM node_app.files;")
+  return rows;
+
+
+
+}
+
+const getS3NameFromID = async (id: string) => {
+
+  const [rows] = await pool.query(`SELECT s3Name FROM node_app.files WHERE ID = ?`, [id])
+  return rows
+
+
+}
+
 
 // this keep file to upload in memory and then send it in post req to s3
 const upload = multer({ storage: multer.memoryStorage() });
@@ -55,7 +87,7 @@ app.get("/getS3NameFromID/:id", async (req: Request, res: Response) => {
   };
 
   try {
-    const response:any = await client.send(new GetObjectCommand(getParams));
+    const response: any = await client.send(new GetObjectCommand(getParams));
 
     let buffer = Buffer.concat(await response.Body.toArray());
 
@@ -74,7 +106,7 @@ app.get("/getS3Item/:objectName", async (req: Request, res: Response) => {
   };
 
   try {
-    const response:any  = await client.send(new GetObjectCommand(getParams));
+    const response: any = await client.send(new GetObjectCommand(getParams));
 
     let buffer = Buffer.concat(await response.Body.toArray());
 
