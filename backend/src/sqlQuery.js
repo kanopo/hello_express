@@ -1,15 +1,15 @@
-import {createPool} from "mysql2/promise";
+import { createPool } from "mysql2/promise";
+import dotenv from "dotenv";
 
 export interface fileRecord {
   ID: string,
   s3Name: string
 }
 
-// @ts-ignore
-const pool:any = createPool({
-  host: "127.0.0.1",
-  user: "node",
-  password: "password"
+const pool = createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_USER
 })
 
 export const insertRecord = async (fileRecord: fileRecord) => {

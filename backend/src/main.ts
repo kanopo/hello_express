@@ -8,6 +8,7 @@ import {
 import crypto from "crypto";
 import multer from "multer";
 import cors from "cors";
+import dotenv from "dotenv";
 
 import {
   fileRecord,
@@ -15,6 +16,8 @@ import {
   getIDs,
   getS3NameFromID,
 } from "./sqlQuery.js";
+
+dotenv.config();
 
 // this keep file to upload in memory and then send it in post req to s3
 const upload = multer({ storage: multer.memoryStorage() });
@@ -24,7 +27,7 @@ upload.single("file");
 const app = express();
 
 app.use(cors());
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const client = new S3Client({ region: "eu-north-1" });
 
 const generateAB = () => {
