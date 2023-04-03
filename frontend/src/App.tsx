@@ -1,17 +1,14 @@
 import { ChangeEvent, useEffect, useState } from 'react'
-import dotenv from 'dotenv'
-
-dotenv.config()
 
 function App() {
+  const API_URL = "https://nodebackend.dmitri.sandbox.soluzionifutura.it";
   const [file, setFile] = useState<File>();
   const [fileName, setFileName] = useState<File>();
   const [s3File, setS3File] = useState(String);
   const [listFiles, setListFiles] = useState([]);
 
   useEffect(() => {
-// @ts-ignore
-    fetch(`${process.env.API_URL}/listItems`, {
+    fetch(`${API_URL}/listItems`, {
       method: "GET"
     })
       .then((res) => res.json())
@@ -24,7 +21,7 @@ function App() {
 
   }, [])
 
-  const sendFile = (event:any) => {
+  const sendFile = (event: any) => {
     event.preventDefault();
 
     if (!file) {
@@ -40,8 +37,7 @@ function App() {
       );
 
 
-// @ts-ignore
-      fetch(`${process.env.API_URL}/item`, {
+      fetch(`${API_URL}/item`, {
         method: "POST",
         body: data,
       })
@@ -51,7 +47,7 @@ function App() {
     }
   }
 
-  const changeFile = (event:any) => {
+  const changeFile = (event: any) => {
     if (event.target.files) {
       setFile(event.target.files[0])
     }
@@ -59,11 +55,10 @@ function App() {
 
 
 
-  const getImage = (event:any) => {
+  const getImage = (event: any) => {
 
     event.preventDefault();
-// @ts-ignore
-    let buffer = fetch(`${process.env.API_URL}/getS3NameFromID/${fileName}`, {
+    let buffer = fetch(`${API_URL}/getS3NameFromID/${fileName}`, {
       method: "GET",
     }).then((responce) => {
       if (!responce.ok) {
@@ -88,13 +83,13 @@ function App() {
 
 
       <ul>
-        {listFiles.map((item:any) => (
+        {listFiles.map((item: any) => (
           <li>{item.ID}</li>
         ))}
       </ul>
 
       <form>
-        <input type="text" name="fileName" onChange={(event:any) => setFileName(event.target.value)} />
+        <input type="text" name="fileName" onChange={(event: any) => setFileName(event.target.value)} />
         <button onClick={getImage}>Get image</button>
       </form>
 
