@@ -10,6 +10,7 @@ function App() {
   const [listFiles, setListFiles] = useState([]);
 
   useEffect(() => {
+// @ts-ignore
     fetch(`${process.env.API_URL}/listItems`, {
       method: "GET"
     })
@@ -39,6 +40,7 @@ function App() {
       );
 
 
+// @ts-ignore
       fetch(`${process.env.API_URL}/item`, {
         method: "POST",
         body: data,
@@ -60,6 +62,7 @@ function App() {
   const getImage = (event:any) => {
 
     event.preventDefault();
+// @ts-ignore
     let buffer = fetch(`${process.env.API_URL}/getS3NameFromID/${fileName}`, {
       method: "GET",
     }).then((responce) => {
