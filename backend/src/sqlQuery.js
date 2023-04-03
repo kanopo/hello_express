@@ -1,15 +1,16 @@
-import mysql from "mysql2";
+import {createPool} from "mysql2/promise";
 
 export interface fileRecord {
   ID: string,
   s3Name: string
 }
 
-const pool = mysql.createPool({
+// @ts-ignore
+const pool:any = createPool({
   host: "127.0.0.1",
   user: "node",
   password: "password"
-}).promise()
+})
 
 export const insertRecord = async (fileRecord: fileRecord) => {
 

@@ -83,7 +83,7 @@ app.get("/getS3Item/:objectName", async (req: Request, res: Response) => {
 app.post(
   "/item",
   upload.single("file"),
-  async (req: Request, res: Response) => {
+  async (req: any, res: Response) => {
     let mimeType = req.file.mimetype;
     let buffer = req.file.buffer;
     // let originalName = req.file.originalname;
