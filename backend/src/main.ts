@@ -78,7 +78,8 @@ app.get("/", async (req: Request, res: Response) => {
 });
 app.get("/listItems", async (req: Request, res: Response) => {
   let ids = (await getIDs()).map(item => item.ID)
-  res.send(ids);
+  // res.send(ids);
+  res.json(ids)
 });
 
 app.get("/getS3NameFromID/:id", async (req: Request, res: Response) => {
@@ -103,24 +104,24 @@ app.get("/getS3NameFromID/:id", async (req: Request, res: Response) => {
   }
 });
 
-app.get("/getS3Item/:objectName", async (req: Request, res: Response) => {
-  const getParams = {
-    Bucket: "dmitri-bucket",
-    Key: req.params.objectName,
-  };
-
-  try {
-    const response = await client.send(new GetObjectCommand(getParams));
-
-    let buffer = Buffer.concat(response.Body);
-
-    res.send(buffer);
-
-    // res.sendStatus(response.$metadata.httpStatusCode)
-  } catch (err) {
-    console.log(err);
-  }
-});
+// app.get("/getS3Item/:objectName", async (req: Request, res: Response) => {
+//   const getParams = {
+//     Bucket: "dmitri-bucket",
+//     Key: req.params.objectName,
+//   };
+//
+//   try {
+//     const response = await client.send(new GetObjectCommand(getParams));
+//
+//     let buffer = Buffer.concat(response.Body);
+//
+//     res.send(buffer);
+//
+//     // res.sendStatus(response.$metadata.httpStatusCode)
+//   } catch (err) {
+//     console.log(err);
+//   }
+// });
 
 app.post(
   "/item",

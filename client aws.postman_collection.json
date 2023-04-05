@@ -1,0 +1,93 @@
+{
+	"info": {
+		"_postman_id": "1ead8490-2c5b-4eba-9ebe-d9a7bf0d4529",
+		"name": "client aws",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "List items in bucket",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/listItems",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"listItems"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Add item to bucket",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {}
+			},
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"description": "file",
+							"type": "file",
+							"src": "/home/dmo/Pictures/wallpapers/606.png"
+						},
+						{
+							"key": "foo",
+							"value": "bar",
+							"type": "default",
+							"disabled": true
+						}
+					]
+				},
+				"url": {
+					"raw": "https://nodebackend.dmitri.sandbox.soluzionifutura.it/item",
+					"protocol": "https",
+					"host": [
+						"nodebackend",
+						"dmitri",
+						"sandbox",
+						"soluzionifutura",
+						"it"
+					],
+					"path": [
+						"item"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "get s3name by id",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://nodebackend.dmitri.sandbox.soluzionifutura.it/getS3NameFromID/19c997cb-1161-4f79-8036-4b448eb37d8d",
+					"protocol": "https",
+					"host": [
+						"nodebackend",
+						"dmitri",
+						"sandbox",
+						"soluzionifutura",
+						"it"
+					],
+					"path": [
+						"getS3NameFromID",
+						"19c997cb-1161-4f79-8036-4b448eb37d8d"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
