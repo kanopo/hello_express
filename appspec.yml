@@ -1,0 +1,30 @@
+# TODO:
+# - aggiungere config di node in nginx
+# - aggiungere il demone dell'app node 
+# - la creazione della cartella e i permessi da dare a ec2 sono in userdata
+version: 0.0
+os: linux
+files:
+  - source: backend
+    destination: /var/www/html/node_app
+hooks:
+  # BeforeInstall:
+  AfterInstall:
+    - location: ./scripts/nginx.sh
+      timeout: 300
+      runas: root
+    - location: ./scripts/npm.sh
+      timeout: 300
+      runas: ec2-user
+    - location: ./scripts/systemd_daemon.sh
+      timeout: 300
+      runas: root
+  ApplicationStart:
+    - location: ./scripts/start.sh
+      timeout: 300
+      runas: root
+  ApplicationStop:
+    - location: scripts/stop.sh
+      timeout: 300
+      runas: root
+
