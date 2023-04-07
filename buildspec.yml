@@ -4,11 +4,18 @@ phases:
   install:
     runtime-versions:
       nodejs: 16.20
+    commands: 
+      - echo "node"
+  pre_build:
+    commands:
+      - echo $(pwd)
+      - cd backend
+      - echo $(pwd)
+      - npm install
   build:
     commands:
-      - cd backend
-      - npm install
+      - echo $(pwd)
       - npm run build
 artifacts:
   files:
-    - dist
+    - "*"

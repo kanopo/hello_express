@@ -18,6 +18,10 @@ interface fileRecord {
   s3Name: string
 }
 
+interface IDS {
+  ID: string
+}
+
 const pool = createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -33,7 +37,7 @@ const insertRecord = async (fileRecord: fileRecord) => {
 
 }
 
-const getIDs = async () => {
+const getIDs = async ():Promise<IDS[]> => {
 
   const [rows] = await pool.query("SELECT ID FROM node_app.files;")
   return rows;
