@@ -6,15 +6,11 @@ phases:
       nodejs: 16
   pre_build:
     commands:
-      - echo Nothing to do in the pre_build phase...
+      - npm install
   build:
     commands:
-      - echo Build started on `date`
       - npm install
       - npm run build
-  post_build:
-    commands:
-      - echo Build completed on `date`
 artifacts:
   files:
-    - target/messageUtil-1.0.jar
+    - dist
