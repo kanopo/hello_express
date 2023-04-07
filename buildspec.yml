@@ -18,7 +18,8 @@ phases:
       - npm run build
 artifacts:
   files:
-    - "appspec.yml"
-    - "scripts/*"
-    - "backend/*"
-    - "backend/dist/*"
+    # - "appspec.yml"
+    # - "scripts/*"
+    # - "backend/*"
+    # - "backend/dist/*"
+    - "**/*"
