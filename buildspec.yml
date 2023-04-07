@@ -3,7 +3,7 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      nodejs: 16.20
+      nodejs: 16
     commands: 
       - echo "node"
   pre_build:

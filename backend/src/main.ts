@@ -37,13 +37,10 @@ const insertRecord = async (fileRecord: fileRecord) => {
 
 }
 
-const getIDs = async ():Promise<IDS[]> => {
+const getIDs = async () => {
 
   const [rows] = await pool.query("SELECT ID FROM node_app.files;")
   return rows;
-
-
-
 }
 
 const getS3NameFromID = async (id: string) => {
