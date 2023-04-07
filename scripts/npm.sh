@@ -12,3 +12,4 @@ npm install
 npm run build
 
 sudo chown -R ec2-user:nginx /var/www/html/node_app
+
