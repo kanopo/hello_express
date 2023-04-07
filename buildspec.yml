@@ -18,6 +18,4 @@ phases:
       - npm run build
 artifacts:
   files:
-    - "*"
-    - "backend"
-    - "scripts"
+    - "**/*"
