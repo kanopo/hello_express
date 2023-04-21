@@ -76,7 +76,7 @@ const generateAB = () => {
 
 
 app.get("/", async (req: Request, res: Response) => {
-  res.sendStatus(200);
+  res.send("Ciao");
 });
 app.get("/listItems", async (req: Request, res: Response) => {
   let ids = (await getIDs()).map(item => item.ID)
