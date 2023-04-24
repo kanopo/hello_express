@@ -110,6 +110,7 @@ app.get("/getS3NameFromID/:id", async (req: Request, res: Response) => {
   try {
     const response = await client.send(new GetObjectCommand(getParams));
 
+    //@ts-ignore
     let buffer = Buffer.concat(await response.Body.toArray());
 
     res.send(buffer);
