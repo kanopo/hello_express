@@ -28,6 +28,20 @@ const pool = createPool({
   password: process.env.DB_PASSWORD
 })
 
+const initializeDB = async () => {
+  const dbCreationDatabseResponse = await pool.query("CREATE DATABASE IF NOT EXISTS node_app;")
+  // console.log(dbCreationResfponse)
+  const dbCreationTableResponse = await pool.query('CREATE TABLE IF NOT EXISTS node_app.files('
+    + 'ID VARCHAR(255) NOT NULL,'
+    + 'PRIMARY KEY(ID),'
+    + 's3Name VARCHAR(255) NOT NULL'
+    + ');'
+  )
+}
+
+initializeDB()
+// await pool.query("CREATE DATABASE IF NOT EXISTS node_app")
+
 const insertRecord = async (fileRecord: fileRecord) => {
 
   const [results] = await pool.query(`INSERT INTO node_app.files (ID, s3Name) VALUES (?, ?)`, [fileRecord.ID, fileRecord.s3Name])
@@ -94,7 +108,7 @@ app.get("/getS3NameFromID/:id", async (req: Request, res: Response) => {
   };
 
   try {
-    const response: any = await client.send(new GetObjectCommand(getParams));
+    const response = await client.send(new GetObjectCommand(getParams));
 
     let buffer = Buffer.concat(await response.Body.toArray());
 
@@ -131,7 +145,7 @@ app.post(
   async (req: any, res: Response) => {
     let mimeType = req.file.mimetype;
     let buffer = req.file.buffer;
-    // let originalName = req.file.originalname;
+    let originalName = req.file.originalname;
 
     let [dbIndex, objectName] = generateAB();
     const uploadParams = {
