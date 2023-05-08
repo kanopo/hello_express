@@ -22,6 +22,9 @@ interface IDS {
   ID: string
 }
 
+const bucketName = process.env.BUCKET_NAME;
+const bucketRegion = process.env.BUCKET_REGION;
+
 const pool = createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -79,7 +82,7 @@ const corsOptions = {
 }
 app.use(cors(corsOptions));
 const PORT = process.env.PORT;
-const client = new S3Client({ region: "eu-north-1" });
+const client = new S3Client({ region: bucketRegion });
 
 const generateAB = () => {
   let dbIndex = crypto.randomUUID();
@@ -151,7 +154,7 @@ app.post(
 
     let [dbIndex, objectName] = generateAB();
     const uploadParams = {
-      Bucket: "dmitri-bucket",
+      Bucket: bucketName,
       Body: buffer,
       Key: objectName,
       ContentType: mimeType,
