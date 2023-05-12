@@ -26,15 +26,12 @@ jobs:
           template: 00_foundation_layer.yaml
           no-fail-on-empty-changeset: "1"
 
-      - name: Inject slug/short variables
-        uses: rlespinasse/github-slug-action@v3.x
-
       - name: Deploy ECS to AWS
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
-          name: dmitriECS-${{ env.GITHUB_REF_SLUG_URL }}
+          name: dmitriECS-${{ github.ref_name }}
           template: 01_template_layer.yaml
           no-fail-on-empty-changeset: "1"
           parameter-overrides: >-
-            pBranchName=${{ github.ref }}
+            pBranchName=${{ github.ref_name }}
           
