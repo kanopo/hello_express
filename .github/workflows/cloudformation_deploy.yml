@@ -23,7 +23,7 @@ jobs:
         run: |
           aws cloudformation create-stack \
             --stack-name dmitri-VPC-github-actions \
-            --template-body https://raw.githubusercontent.com/kanopo/cloudformation-node/main/00_foundation_layer.yaml \
+            --template-body https://raw.githubusercontent.com/kanopo/cloudformation-node/main/00_foundation_layer.yaml
             # --parameters ParameterKey=BranchName,ParameterValue=${{ github.ref }}
 
       - name: Create ECS stack and give the branch name to the stack
