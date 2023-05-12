@@ -1,6 +1,6 @@
 name: Deploy CloudFormation Stack
 on:
-  push:
+  create:
     branches:
       - "*"
 
