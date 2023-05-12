@@ -17,6 +17,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.ACCESS_KEY_SECRET }}
+          aws-region: eu-north-1
 
       - name: Create VPS if not exists or update if exists and ther are some differences
         run: |
