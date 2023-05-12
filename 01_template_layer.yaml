@@ -221,10 +221,11 @@ Resources:
     Type: AWS::CertificateManager::Certificate
     Properties: 
       # DomainName: !Ref pDNSName
-      DomainName: !Join:
-        - "."
-        - - !Ref pBranchName
-          - !Ref pDNSName
+      DomainName:
+        !Join
+          - "."
+          - - !Ref pBranchName
+            - !Ref pDNSName
 
       ValidationMethod: DNS
 
@@ -234,10 +235,11 @@ Resources:
     Properties:
       HostedZoneId : !Ref pHostedZoneId
       # Name: !Ref pDNSName
-      Name: !Join:
-        - "."
-        - - !Ref pBranchName
-          - !Ref pDNSName
+      Name: 
+        !Join
+          - "."
+          - - !Ref pBranchName
+            - !Ref pDNSName
       ResourceRecords:
       - !GetAtt ALB.DNSName
       TTL: 900
