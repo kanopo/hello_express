@@ -25,12 +25,17 @@ jobs:
           name: dmitriVPC
           template: 00_foundation_layer.yaml
           no-fail-on-empty-changeset: "1"
+
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=$(echo ${GITHUB_REF#refs/heads/})" >>$GITHUB_OUTPUT
+        id: extract_branch
                 
       - name: Deploy ECS to AWS
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
           # name: dmitriECS-${{ github.ref_name }}
-          name: dmitriECS-${GITHUB_REF##*/}
+          name: dmitriECS-${{ steps.extract_branch.outputs.branch }}-
           template: 01_template_layer.yaml
           no-fail-on-empty-changeset: "1"
           parameter-overrides: >-
