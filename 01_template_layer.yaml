@@ -1,0 +1,532 @@
+Description: "Load balancer template"
+# TODO:
+#   - aggiungere il selettore delle repo git nel template
+#   - aggiungere la creazione di ogni role e policy
+
+Parameters:
+  pNumberFargateInstances:
+    Description: Number of fargate instances
+    Type: Number
+    Default: 1
+  pDatabaseUser:
+    Description: Username used for accessing database
+    Type: String
+    Default: node
+  pEnableExecute:
+    Description: Enable access to FARGATE containers
+    Type: String
+    Default: false
+    AllowedValues:
+      - true
+      - false
+
+
+  pHostedZoneId:
+    Description: Hosted zone id for route53 association
+    Type: String
+    Default: Z05711693JWUSZY3QSZ10
+
+  pDNSName:
+    Description: DNS name
+    Type: String
+    Default: dmitri.sandbox.soluzionifutura.it
+
+  pBranchName:
+    Description: source branch
+    Type: String
+    Default: cloudformation-ecs
+
+
+Resources:
+  DBCredentials:
+    Type: AWS::SecretsManager::Secret
+    Properties: 
+      Description: Auto generated password for DB
+      GenerateSecretString: 
+        GenerateStringKey: "password"
+        SecretStringTemplate: !Sub '{"username": "${pDatabaseUser}"}'
+        PasswordLength: 30
+        ExcludeCharacters: '"@/\'
+
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: subnet group for rds
+      SubnetIds:
+        - Fn::ImportValue: !Sub dmitri-private-subnet-01
+        - Fn::ImportValue: !Sub dmitri-private-subnet-02
+
+
+
+
+  KMSKey:
+    Type: AWS::KMS::Key
+    Properties: 
+      Description: Key used for encrypt and decrypt s3 buckets and rds dbs in this cloudformation stack
+      Enabled: true
+      EnableKeyRotation: false
+      KeyPolicy: 
+        {
+        "Id": "key-consolepolicy-3",
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "Enable IAM User Permissions",
+                "Effect": "Allow",
+                "Principal": {
+                    "AWS": "arn:aws:iam::861507897222:root"
+                },
+                "Action": "kms:*",
+                "Resource": "*"
+            },
+            {
+                "Sid": "Allow access for Key Administrators",
+                "Effect": "Allow",
+                "Principal": {
+                    "AWS": "arn:aws:iam::861507897222:role/ecsTaskExecutionRole"
+                },
+                "Action": [
+                    "kms:Create*",
+                    "kms:Describe*",
+                    "kms:Enable*",
+                    "kms:List*",
+                    "kms:Put*",
+                    "kms:Update*",
+                    "kms:Revoke*",
+                    "kms:Disable*",
+                    "kms:Get*",
+                    "kms:Delete*",
+                    "kms:TagResource",
+                    "kms:UntagResource",
+                    "kms:ScheduleKeyDeletion",
+                    "kms:CancelKeyDeletion"
+                ],
+                "Resource": "*"
+            },
+            {
+                "Sid": "Allow use of the key",
+                "Effect": "Allow",
+                "Principal": {
+                    "AWS": "arn:aws:iam::861507897222:role/ecsTaskExecutionRole"
+                },
+                "Action": [
+                    "kms:Encrypt",
+                    "kms:Decrypt",
+                    "kms:ReEncrypt*",
+                    "kms:GenerateDataKey*",
+                    "kms:DescribeKey"
+                ],
+                "Resource": "*"
+            },
+            {
+                "Sid": "Allow attachment of persistent resources",
+                "Effect": "Allow",
+                "Principal": {
+                    "AWS": "arn:aws:iam::861507897222:role/ecsTaskExecutionRole"
+                },
+                "Action": [
+                    "kms:CreateGrant",
+                    "kms:ListGrants",
+                    "kms:RevokeGrant"
+                ],
+                "Resource": "*",
+                "Condition": {
+                    "Bool": {
+                        "kms:GrantIsForAWSResource": "true"
+                    }
+                }
+            }
+          ]
+        }
+      KeySpec: SYMMETRIC_DEFAULT
+      KeyUsage: ENCRYPT_DECRYPT 
+
+
+  MyDB:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      StorageType: gp3
+      AllocatedStorage: 20
+      DBInstanceClass: db.t3.small
+      Engine: MySQL
+      MasterUsername: !Sub '{{resolve:secretsmanager:${DBCredentials}:SecretString:username}}' 
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${DBCredentials}:SecretString:password}}'  
+      NetworkType: ipv4
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - Fn::ImportValue: !Sub dmitri-sg-db
+      KmsKeyId: !GetAtt KMSKey.Arn
+      StorageEncrypted: true
+
+
+  SGLoadBalancer:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: Allow access to load balancer from ports 80 and 443
+      SecurityGroupIngress: 
+        - IpProtocol: tcp
+          FromPort: "80"
+          ToPort: "80"
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: "443"
+          ToPort: "443"
+          CidrIp: 0.0.0.0/0
+      VpcId: 
+        Fn::ImportValue: !Sub dmitri-vpc
+
+  ALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties: 
+      IpAddressType: ipv4
+      Scheme: internet-facing
+      SecurityGroups: 
+        - !Ref SGLoadBalancer
+      Subnets: 
+        - Fn::ImportValue: !Sub dmitri-public-subnet-01
+        - Fn::ImportValue: !Sub dmitri-public-subnet-02
+
+
+
+  ALBListener80:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties: 
+      DefaultActions: 
+        - Type: redirect
+          RedirectConfig:
+            Protocol: "HTTPS"
+            Port: 443
+            Host: "#{host}"
+            Path: "/#{path}"
+            Query: "#{query}"
+            StatusCode: "HTTP_301" 
+      LoadBalancerArn: !Ref ALB
+      Port: 80
+      Protocol: HTTP
+
+
+  ALBListener443:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties: 
+      DefaultActions: 
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+      LoadBalancerArn: !Ref ALB
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref HTTPSCertificate
+
+  HTTPSCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties: 
+      # DomainName: !Ref pDNSName
+      DomainName: !Join:
+        - "."
+        - - !Ref pBranchName
+          - !Ref pDNSName
+
+      ValidationMethod: DNS
+
+
+  DNSRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId : !Ref pHostedZoneId
+      # Name: !Ref pDNSName
+      Name: !Join:
+        - "."
+        - - !Ref pBranchName
+          - !Ref pDNSName
+      ResourceRecords:
+      - !GetAtt ALB.DNSName
+      TTL: 900
+      Type: CNAME
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties: 
+      IpAddressType: ipv4
+      Port: 3000
+      Protocol: HTTP 
+      ProtocolVersion: HTTP1
+      TargetType: ip
+      VpcId: 
+        Fn::ImportValue: !Sub dmitri-vpc
+
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties: 
+      CapacityProviders: 
+        - FARGATE
+      ClusterSettings: 
+        - Name: containerInsights
+          Value: enabled
+
+    DependsOn: ALB
+
+
+
+  ECSTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      ExecutionRoleArn: arn:aws:iam::861507897222:role/ecsTaskExecutionRole
+      # WARN: need to created the following role inside the template
+      TaskRoleArn: arn:aws:iam::861507897222:role/dmitriEcsAccessS3 
+      Memory: 1024
+      Cpu: 512
+      NetworkMode: awsvpc
+      RuntimePlatform:
+        CpuArchitecture: X86_64
+        OperatingSystemFamily: LINUX
+      ContainerDefinitions:
+        - Image: 861507897222.dkr.ecr.eu-north-1.amazonaws.com/node_app
+          Name: dmitri-task-definition-cf
+          PortMappings: 
+            - AppProtocol: http
+              ContainerPort: 3000
+              HostPort: 3000
+              Protocol: tcp
+            - AppProtocol: http
+              ContainerPort: 3306
+              HostPort: 3306
+              Protocol: http
+          Environment:
+            - Name: PORT
+              Value: 3000
+            - Name: DB_DATABASE
+              Value: node_app
+            - Name: DB_HOST
+              Value: !GetAtt MyDB.Endpoint.Address
+            - Name: DB_PASSWORD
+              Value: !Sub '{{resolve:secretsmanager:${DBCredentials}:SecretString:password}}' 
+            - Name: DB_PORT
+              Value: 3306
+            - Name: DB_USER
+              Value: !Sub '{{resolve:secretsmanager:${DBCredentials}:SecretString:username}}' 
+            - Name: BUCKET_NAME
+              Value: !Ref ImageStoreBucket
+            - Name: BUCKET_REGION
+              Value: !Ref AWS::Region
+
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              "awslogs-group": "node-ecs"
+              "awslogs-region": !Ref AWS::Region
+              "awslogs-create-group": "true"
+              "awslogs-stream-prefix": "dmitri"
+
+
+
+  ECSService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref ECSCluster
+      DesiredCount: !Ref pNumberFargateInstances
+      LaunchType: FARGATE
+      EnableExecuteCommand: !Ref pEnableExecute
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups: 
+            - Fn::ImportValue: !Sub dmitri-sg-fargate-container 
+          Subnets: 
+            - Fn::ImportValue: !Sub dmitri-private-subnet-01
+            - Fn::ImportValue: !Sub dmitri-private-subnet-02
+      LoadBalancers:
+        - ContainerName: dmitri-task-definition-cf
+          ContainerPort: 3000
+          TargetGroupArn: !Ref TargetGroup
+      SchedulingStrategy: REPLICA
+      TaskDefinition: !Ref ECSTaskDefinition
+
+
+  ArtifactStoreBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - BucketKeyEnabled: true
+            ServerSideEncryptionByDefault:
+              KMSMasterKeyID: !GetAtt KMSKey.Arn
+              SSEAlgorithm: aws:kms
+
+  ImageStoreBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - BucketKeyEnabled: true
+            ServerSideEncryptionByDefault:
+              KMSMasterKeyID: !GetAtt KMSKey.Arn
+              SSEAlgorithm: aws:kms
+
+  CleanArtifactBucket:
+    Type: Custom::cleanBucket
+    Properties: 
+      ServiceToken: !GetAtt LFCleanBucket.Arn
+      BucketName: !Ref ArtifactStoreBucket
+      Region: !Ref AWS::Region
+
+  CleanImageBucket:
+    Type: Custom::cleanBucket
+    Properties: 
+      ServiceToken: !GetAtt LFCleanBucket.Arn
+      BucketName: !Ref ImageStoreBucket
+      Region: !Ref AWS::Region
+
+  LFCleanBucket:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: nodejs18.x
+      Handler: index.handler
+      Code:
+        ZipFile: |
+          const response = require("cfn-response")
+          const { S3Client, ListObjectsCommand, DeleteObjectsCommand } = require("@aws-sdk/client-s3");
+
+          const send = (event, context, responseStatus, responseData, physicalResourceId) => {
+            return new Promise((resolve) => {
+              const done = context.done
+              context.done = (event, context, responseStatus, responseData, physicalResourceId) => {
+                resolve(done(event, context, responseStatus, responseData, physicalResourceId))
+              }
+              response.send(event, context, responseStatus, responseData, physicalResourceId)
+            })
+          }
+
+          exports.handler = async (event, context) => {
+            setTimeout(async (event, context) => {
+              console.log("TIMEOUT")
+              return await send(event, context, "FAILED", {
+                body: "Lambda timeouted"
+              })
+            }, 1000 * 60) // the value is in milliseconds
+
+            if (event.RequestType == "Delete") {
+              const bucketName = event.ResourceProperties.BucketName;
+              const region = event.ResourceProperties.Region;
+
+              try {
+                var s3 = new S3Client({
+                  region: region
+                })
+              } catch (e) {
+                console.log(e)
+              }
+
+              const listResponse = await s3.send(new ListObjectsCommand({
+                Bucket: bucketName,
+              }))
+
+              try {
+
+                var keys = listResponse.Contents.map(obj => {
+                  return { Key: obj.Key }
+                })
+              } catch (e) {
+
+                return await send(event, context, response.SUCCESS, {
+                  body: "Nothing to delete"
+                })
+              }
+              const deleteResponse = await s3.send(new DeleteObjectsCommand({
+                Bucket: bucketName,
+                Delete: {
+                  Objects: keys
+                }
+              }))
+
+              return await send(event, context, response.SUCCESS, {
+                body: "Deletion completed " + deleteResponse
+              })
+
+
+            } else if (event.RequestType == "Update") {
+              return await send(event, context, response.SUCCESS, {
+                body: "Update completed"
+              })
+            } else if (event.RequestType == "Create") {
+              return await send(event, context, response.SUCCESS, {
+                body: "Create completed"
+              })
+            }
+          }
+
+
+      KmsKeyArn: !GetAtt KMSKey.Arn
+      # WARN: need to created the following role inside the template
+      Role: arn:aws:iam::861507897222:role/dmitriLambdaRoleDeleteS3Object 
+      Timeout: 60
+
+
+
+  CodePipeLine:
+    Type: "AWS::CodePipeline::Pipeline"
+    Properties:
+      ArtifactStore:
+        Type: S3
+        Location: !Ref ArtifactStoreBucket
+      RoleArn: arn:aws:iam::861507897222:role/CodePipelineServiceRole
+      Stages:
+        - Name: Source
+          Actions:
+            - ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: CodeStarSourceConnection
+                Version: 1
+              RunOrder: 1
+              Configuration: 
+                ConnectionArn: arn:aws:codestar-connections:eu-north-1:861507897222:connection/3539e571-f68d-4976-924d-214a46cd5fcd
+                FullRepositoryId: kanopo/hello_express
+                BranchName: !Ref pBranchName
+              Name: SourceAction
+              OutputArtifacts:
+                - Name: SourceArtifact
+        - Name: Build
+          Actions: 
+            - InputArtifacts: 
+                - Name: SourceArtifact
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              RunOrder: 2
+              Configuration: 
+                ProjectName: dmitri-build-node-docker
+                PrimarySource: SourceArtifact
+              Name: BuildAction
+              OutputArtifacts:
+                - Name: BuildArtifact
+        - Name: Deploy
+          Actions: 
+            - InputArtifacts:
+                - Name: BuildArtifact
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: ECS
+                Version: 1
+              RunOrder: 3
+              Configuration:
+                ClusterName: !Ref ECSCluster
+                ServiceName: !Ref ECSService
+                FileName: imageDefinitions.json
+              Name: DeployAction
+
+
+Outputs:
+  LoadBalancerDns:
+    Description: EndPoint URI
+    Value: 
+      !Join
+        - ''
+        - - https://
+          - !Ref pDNSName
+
+  MysqlUrl:
+    Description: Mysql URI
+    Value: !GetAtt MyDB.Endpoint.Address 

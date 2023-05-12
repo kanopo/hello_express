@@ -23,14 +23,14 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
           name: dmitriVPC
-          template: https://raw.githubusercontent.com/kanopo/cloudformation-node/main/00_foundation_layer.yaml 
+          template: 00_foundation_layer.yaml
           no-fail-on-empty-changeset: "1"
                 
       - name: Deploy ECS to AWS
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
           name: dmitriECS-${{ github.ref_name }}
-          template: https://raw.githubusercontent.com/kanopo/cloudformation-node/main/01_template_layer.yaml  
+          template: 01_template_layer.yaml
           no-fail-on-empty-changeset: "1"
           parameter-overrides: >-
             pBranchName=${{ github.ref }}

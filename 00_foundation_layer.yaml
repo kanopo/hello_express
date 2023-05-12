@@ -1,0 +1,383 @@
+Description: 'Create basic VPC with 4 subents and 1 bastion'
+Parameters:
+  pVpcCidrBlock:
+    Description: VPC CIDR range
+    Type: String
+    Default: '10.0.0.0/16'
+
+  pPublicSubnet01CidrBlock:
+    Description: Subnet CIDR range
+    Type: String
+    Default: '10.0.0.0/24'
+
+  pPublicSubnet02CidrBlock:
+    Description: Subnet CIDR range
+    Type: String
+    Default: '10.0.1.0/24'
+  
+  pPrivateSubnet01CidrBlock:
+    Description: Subnet CIDR range
+    Type: String
+    Default: '10.0.2.0/24'
+  
+  pPrivateSubnet02CidrBlock:
+    Description: Subnet CIDR range
+    Type: String
+    Default: '10.0.3.0/24'
+
+  pAmiId:
+    Description: AMI ID
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+
+
+
+  pCreateBastion:
+    Description: Create bastion host
+    Type: String
+    AllowedValues:
+      - "yes"
+      - "no"
+    Default: "yes"
+
+  pCreateNat:
+    Description: Create NAT Gateway
+    Type: String
+    AllowedValues:
+      - "yes"
+      - "no" 
+    Default: "yes"
+
+
+
+Conditions:
+  haveBastion: !Equals
+    - !Ref pCreateBastion
+    - "yes"
+
+  haveNat: !Equals
+    - !Ref pCreateNat
+    - "yes"
+
+  notHaveNat: !Equals
+    - !Ref pCreateNat
+    - "no"
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties: 
+      CidrBlock: !Ref pVpcCidrBlock
+      EnableDnsHostnames: false
+      EnableDnsSupport: true
+      InstanceTenancy: default
+
+
+  PublicSubnet01:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      AvailabilityZone: 
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: !Ref AWS::Region
+      CidrBlock: !Ref pPublicSubnet01CidrBlock
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref VPC
+
+  PublicSubnet02:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      AvailabilityZone: 
+        Fn::Select:
+          - 1
+          - Fn::GetAZs: !Ref AWS::Region
+      CidrBlock: !Ref pPublicSubnet02CidrBlock
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref VPC
+
+  PrivateSubnet01:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      AvailabilityZone: 
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: !Ref AWS::Region
+      CidrBlock: !Ref pPrivateSubnet01CidrBlock
+      MapPublicIpOnLaunch: false
+      VpcId: !Ref VPC
+
+  PrivateSubnet02:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      AvailabilityZone: 
+        Fn::Select:
+          - 1
+          - Fn::GetAZs: !Ref AWS::Region
+      CidrBlock: !Ref pPrivateSubnet02CidrBlock
+      MapPublicIpOnLaunch: false
+      VpcId: !Ref VPC
+
+
+  InternetGateway01:
+    Type: AWS::EC2::InternetGateway
+
+  VpcGatewayAttachment01:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties: 
+      InternetGatewayId: !Ref InternetGateway01
+      VpcId: !Ref VPC
+
+
+  NATGateway01:
+    Type: AWS::EC2::NatGateway
+    Condition: haveNat
+    Properties:
+      AllocationId: !GetAtt NATGatewayEIP01.AllocationId
+      SubnetId: !Ref PublicSubnet01
+
+
+  NATGatewayEIP01:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+    DependsOn: VPC
+
+
+  PublicRouteTable01:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  PrivateRouteTable01:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+
+  PublicRoute01:
+    Type: AWS::EC2::Route
+    Properties: 
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: !Ref InternetGateway01
+      RouteTableId: !Ref PublicRouteTable01
+
+  PrivateRoute01:
+    Type: AWS::EC2::Route
+    Properties: 
+      DestinationCidrBlock: '0.0.0.0/0'
+      InstanceId: !If [haveNat, !Ref AWS::NoValue, !Ref Bastion]
+      NatGatewayId: !If [haveNat, !Ref NATGateway01, !Ref AWS::NoValue]
+      RouteTableId: !Ref PrivateRouteTable01
+
+  PublicRouteTableAssociation01:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PublicRouteTable01
+      SubnetId: !Ref PublicSubnet01
+
+  PublicRouteTableAssociation02:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PublicRouteTable01
+      SubnetId: !Ref PublicSubnet02
+
+  PrivateRouteTableAssociation01:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PrivateRouteTable01
+      SubnetId: !Ref PrivateSubnet01
+
+  PrivateRouteTableAssociation02:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PrivateRouteTable01
+      SubnetId: !Ref PrivateSubnet02
+
+  BastionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: haveBastion
+    Properties: 
+      GroupDescription: Security group for ssh connections
+      GroupName: BastionSecurityGroup
+      SecurityGroupIngress: 
+        - IpProtocol: tcp
+          FromPort: "22"
+          ToPort: "22"
+          CidrIp: "0.0.0.0/0"
+      VpcId: !Ref VPC
+
+  BastionNatInstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: notHaveNat
+    Properties: 
+      GroupDescription: Security group for bastion NAT instance
+      GroupName: BastionNatSecurityGroup
+      SecurityGroupEgress: 
+        - IpProtocol: "tcp"
+          FromPort: "80"
+          ToPort: "80"
+          CidrIp: "0.0.0.0/0"
+        - IpProtocol: "tcp"
+          FromPort: "443"
+          ToPort: "443"
+          CidrIp: "0.0.0.0/0"
+
+      SecurityGroupIngress: 
+        - IpProtocol: "tcp"
+          FromPort: "80"
+          ToPort: "80"
+          CidrIp: !GetAtt PrivateSubnet01.CidrBlock
+        - IpProtocol: "tcp"
+          FromPort: "443"
+          ToPort: "443"
+          CidrIp: !GetAtt PrivateSubnet01.CidrBlock
+
+        - IpProtocol: tcp
+          FromPort: "80"
+          ToPort: "80"
+          CidrIp: !GetAtt PrivateSubnet02.CidrBlock
+        - IpProtocol: tcp
+          FromPort: "443"
+          ToPort: "443"
+          CidrIp: !GetAtt PrivateSubnet02.CidrBlock
+      VpcId: !Ref VPC
+
+  Bastion:
+    Type: AWS::EC2::Instance
+    Condition: haveBastion
+    Properties: 
+      ImageId: !Ref pAmiId 
+      InstanceType: t3.micro
+      KeyName: dmitri
+      Monitoring: true
+      SecurityGroupIds: 
+        - !Ref BastionSecurityGroup
+        - !If [notHaveNat, !Ref BastionNatInstanceSecurityGroup, !Ref AWS::NoValue]
+      SourceDestCheck: false
+      SubnetId: !Ref PublicSubnet01
+      UserData: 
+        Fn::Base64: |
+          #!/bin/sh
+          echo 1 > /proc/sys/net/ipv4/ip_forward
+          echo 0 > /proc/sys/net/ipv4/conf/eth0/send_redirects
+          /sbin/iptables -t nat -A POSTROUTING -o eth0 -s 0.0.0.0/0 -j MASQUERADE
+          /sbin/iptables-save > /etc/sysconfig/iptables
+          mkdir -p /etc/sysctl.d/
+          cat <<EOF > /etc/sysctl.d/nat.conf
+          net.ipv4.ip_forward = 1
+          net.ipv4.conf.eth0.send_redirects = 0
+          EOF 
+
+
+  SGFargateContainer:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for fargate container
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: "3000"
+          ToPort: "3000"
+          CidrIp: 0.0.0.0/0
+      VpcId: !Ref VPC
+
+  SGDB:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for database
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: "3306"
+          ToPort: "3306"
+          CidrIp: !GetAtt VPC.CidrBlock
+      VpcId: !Ref VPC
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: "VPC setup"
+        Parameters:
+          - pVpcCidrBlock 
+      -
+        Label:
+          default: "Subnet configuration"
+        Parameters:
+          - pPublicSubnet01CidrBlock
+          - pPublicSubnet02CidrBlock
+          - pPrivateSubnet01CidrBlock
+          - pPrivateSubnet02CidrBlock
+      -
+        Label:
+          default: "Create bastion host"
+
+      -
+        Label:
+          default: "Create NAT Gateway"
+        Parameters:
+          - pCreateBastion
+
+      -
+        Label:
+          default: "AMI ID"
+        Parameters:
+          - pAmiId
+
+Outputs:
+  BastionIp:
+    Description: "Bastion IP"
+    Value: !GetAtt Bastion.PublicIp
+    Condition: haveBastion
+
+  MyStacksRegion:
+    Value: !Ref "AWS::Region"
+    Export: 
+      Name: dmitri-stack-region
+
+  VPC:
+    Description: VPC export
+    Value: !Ref VPC
+    Export: 
+      Name: dmitri-vpc
+
+  VPCCIDR:
+    Description: VPC CIDR block export
+    Value: !GetAtt VPC.CidrBlock
+    Export: 
+      Name: dmitri-vpc-cidr
+
+  PublicSubnet01:
+    Description: Public subnet export
+    Value: !Ref PublicSubnet01
+    Export:
+      Name: dmitri-public-subnet-01
+
+  PublicSubnet02:
+    Description: Public subnet export
+    Value: !Ref PublicSubnet02
+    Export:
+      Name: dmitri-public-subnet-02
+
+  PrivateSubnet01:
+    Description: Private subnet export
+    Value: !Ref PrivateSubnet01
+    Export:
+      Name: dmitri-private-subnet-01
+
+  PrivateSubnet02:
+    Description: Private subnet export
+    Value: !Ref PrivateSubnet02
+    Export:
+      Name: dmitri-private-subnet-02
+
+  SGFargateContainer:
+    Description: Allow inbound connection on port 3000
+    Value: !Ref SGFargateContainer
+    Export:
+      Name: dmitri-sg-fargate-container
+
+  SGDB:
+    Description: Securiity group for db connection
+    Value: !Ref SGDB
+    Export:
+      Name: dmitri-sg-db
