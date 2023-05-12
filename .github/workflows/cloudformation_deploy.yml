@@ -1,0 +1,33 @@
+name: Deploy CloudFormation Stack
+on:
+  push:
+    branches:
+      - "*"
+
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.ACCESS_KEY_SECRET }}
+
+      - name: Create VPS if not exists or update if exists and ther are some differences
+        run: |
+          aws cloudformation create-stack \
+            --stack-name dmitri-VPC-github-actions \
+            --template-body https://raw.githubusercontent.com/kanopo/cloudformation-node/main/00_foundation_layer.yaml \
+            # --parameters ParameterKey=BranchName,ParameterValue=${{ github.ref }}
+
+      - name: Create ECS stack and give the branch name to the stack
+        run: |
+          aws cloudformation create-stack \
+            --stack-name dmitri-ECS-github-actions-branch-${{ github.ref }} \
+            --template-body https://raw.githubusercontent.com/kanopo/cloudformation-node/main/01_template_layer.yaml \
+            --parameters ParameterKey=pBranchName,ParameterValue=${{ github.ref }}
