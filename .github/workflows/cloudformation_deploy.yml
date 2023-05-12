@@ -29,7 +29,8 @@ jobs:
       - name: Deploy ECS to AWS
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
-          name: dmitriECS-${{ github.ref_name }}
+          # name: dmitriECS-${{ github.ref_name }}
+          name: dmitriECS-${GITHUB_REF##*/}
           template: 01_template_layer.yaml
           no-fail-on-empty-changeset: "1"
           parameter-overrides: >-
